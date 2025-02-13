@@ -1,5 +1,5 @@
 ---
-title: "Proposal: [Samantha Miller]"
+title: "Proposal: The Real Reason For Higher Insurance Rates"
 subtitle: "DATA 450 Capstone"
 author: "[Samantha Miller]"
 date: today
@@ -29,7 +29,7 @@ Inflation as measured by the consumer price index reflects the annual percentage
 
 Florida Hurricane Dataset
 
-Dataset was obtained from NOAA- National Centers for Environmentl Information. Contains 269 Hurricane events reported in Florda between 01/01/2000 and 12/31/2024.
+Dataset was obtained from NOAA- National Centers for Environmental Information. Contains 269 Hurricane events reported in Florida between 01/01/2000 and 12/31/2024.
 
 * County/Zone
 * St: state
@@ -80,63 +80,73 @@ U.S. Bureau of Labor Statistics, Producer Price Index by Industry: Premiums for 
 # Data Acquisition and Processing
 
 - Recode variables in multiple datasets that have the same variable names
-- Impute missing values by deteting the row, as there is plenty of data that the value will not likely effect resulys
-- Overall, the data is pretty tidy but will be thuroughly examined
+- Impute missing values by deleting the row, as there is plenty of data that the value will not likely affect results
+- Overall, the data is pretty tidy but will be thoroughly examined
 
 
 # Research Questions and Methodology
 
-Main Question:
+Question:
 Are property insurance rates rising due to inflation or higher risks of natural disasters?
 
-[Using visualizations, I plan to answer if insurance rates are rising at the levels of inflation or levels of increased natural disasters. I will use linegraphs to compare the rates of increase. Histograms will also be used to track the cost of damages done by hurricanes in Florida and ice storms in New York to see if costly disasters are on the rise.]
+Using exploratory data analysis visualizations, I plan to answer if insurance rates are rising at the levels of inflation or levels of increased natural disasters. I will use linegraphs to compare the rates of increase of both natural disasters and insurance rates over time, a correlation heatmap between inflation rates and insurance premiums, and histograms to track the cost of damages done by hurricanes in Florida and ice storms in New York to see if costly disasters are on the rise over time. 
 
+Once the data is visualized and trends are able to be depicted in insurance rates, inflation and natural disaster occurrences, I will use the data in a hypothesis test. This will allow me to statistically test whether the rise in insurance rates have a significant correlated with inflation or natural disasters. My null hypothesis is that insurance rates are increasing at the same rate as inflation. The alternative hypothesis is that insurance rates are increasing at a significantly higher rate, suggesting other contributing factors such as natural disasters.
+
+Finally, I will use multiple linear regression to quantify the relationships. It will determine how much the insurance rates are influenced by inflation and natural disasters to find which or if both factors have a strong correlation with the increase in insurance premiums.
 
 # Work plan
 
 **Week 4 (2/10 - 2/16):** 
 
-* Data tidying and recoding (4 hours)
-* Visualize and analyze inflation rates between 2000 and 2024 (3 hours)
+* Past project research (0.5 hours)
+* Revise proposal (1 hour)
+* Data tidying and recoding (5.5 hours)
 
 **Week 5 (2/17 - 2/23):**
 
-* Visualize and analyze New York Ice Storm Data (3.5 hours)
-* Visualize and analyze Florida hurricane Data (3.5 hours)
-(lots of data in these datasets and areas to explore such as cost of damages and frequency of events)
+* Visualize and analyze inflation rates between 2000 and 2024 (2 hours)
+* Visualize and analyze New York Ice Storm Data (2.5 hours)
+* Visualize and analyze Florida hurricane Data (2.5 hours)
 
 **Week 6 (2/24 - 3/2):**
 
 * Visualize and analyze Home Insurance Premiums Data (2 hours)
 * Visualize and analyze Commercial Property Insurance Premiums Data (2 hours)
-* Combine and compare rate of insurance price increase to inflation rates and natural disaster findings (2 hours)
+* Start working on hypothesis test (3 hours)
 
 **Week 7 (3/3 - 3/9):**
 
-* Draw conclusions based on findings from data and visualizations to answer question (3 hours)
+* Continue working on hypothesis test (1 hours)
+* Start working on multiple linear regression (2 hours)
 * Presentation prep and practice (4 hours)
 
 **Week 8 (3/10 - 3/16):** *Presentations given on Wed-Thu 3/12-3/13.*
 
+* Continue working on multiple linear regression (1.5 hours)
 * Poster prep (4 hours)
 * Presentation peer review (1.5 hours)
 
 **Week 9 (3/24 - 3/30):** *Poster Draft 1 due Monday morning 3/24 at 9am. Poster Draft 2 due Sunday night 3/30.*
 
+* Draw final conclusions based on results (1 hour)
 * Peer feedback (2 hours)
-* Poster revisions (2 hours)
+* Poster revisions (3 hours)
 
 **Week 10 (3/31 - 4/6):** *Final Poster due Sunday 4/6.*
 
 * Peer feedback (1.5 hours)
 * Final Poster revisions (2 hours)
+* Prep for DMC fair (2 hours)
 
 **Week 11 (4/7 - 4/13):**
 
+* Start working on blog post (4 hours)
+* Prep for DMC fair (2 hours)
 
 **Week 12 (4/14 - 4/20):**
 
-* Prepare for DMC fair- practice presenting (4 hours)
+* Prepare for DMC fair- practice presenting (5 hours)
 
 **Week 13 (4/21 - 4/27):** *Blog post draft 1 due Sunday night 4/28.*
 [All project work should be done by the end of this 
@@ -153,6 +163,7 @@ week. The remaining time will be used for writing up and presenting your results
 
 * Blog post revisions (2 hours)
 * Peer feedback (2 hours)
+* Practice final read through (1 hour)
 
 
 # References
