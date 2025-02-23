@@ -135,6 +135,16 @@ Further evaluate Natural Disaster (Hurricane and Ice Storm data):
       - Stacked segments: Hurricanes and Ice Storms
   - Make a simulation/ annimation of ice storm occurances in NY and hurricane occurances in FL on a map of each state that shows where within the state (by county) storms occured. The animation will go throughout time (2000-2024) and show markers of where/when storms occured. This will show whether or not storms were more common in some areas and if they got more frequent on the animation.
 
+  - Calendar heatmap plot 
+    -  2 rows (one for FL hurricanes and one for NY ice storms)
+    - each row containing 12 squares, one for each calendar month 
+    - color represents the total property damage for all storms in that month
+    
+  - Comparison of deaths and injuries for FL vs. NY with  side by side line charts
+    - X-axis: Year
+    - Y-axis: Number of Deaths or Injuries
+    - Two different color lines lines (FL and NY) for each plot
+    - two plots: one for deaths, one for injuries
 
 # Work plan
 
@@ -187,14 +197,15 @@ Further evaluate Natural Disaster (Hurricane and Ice Storm data):
 
 **Week 12 (4/14 - 4/20):**
 
-* Finish animation (1 hour)
-* Prepare for DMC fair- practice presenting (5 hours)
+* Calander Heat Map (3 hours)
+* Prepare for DMC fair- practice presenting (4 hours)
 
 **Week 13 (4/21 - 4/27):** *Blog post draft 1 due Sunday night 4/28.*
 [All project work should be done by the end of this 
 week. The remaining time will be used for writing up and presenting your results.]
 
-* Draft blog post (6 hours).
+* Side by side line charts (3 hours)
+* Draft blog post (4 hours).
 
 **Week 14 (4/28 - 5/4):**
 
