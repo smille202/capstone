@@ -22,7 +22,7 @@ jupyter: python3
 # Welcome
 
 
-**Welcome** to *my* ~~super~~ SUPER awesome `blog` 
+**Welcome** to *my* ~~super~~ SUPER awesome `blog` yay
 $$x^2 = 1$$
 
 ## Quarto is cool
