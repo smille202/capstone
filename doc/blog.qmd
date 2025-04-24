@@ -17,8 +17,7 @@ jupyter: python3
 ---
 
 
-![Source: Unsplash, Bingley Flood River Aire 2015](disasterimage.jpg){width=100%}
-
+![Source: Unsplash, Jakub Żerdzicki](image.jpg){width=100%}
 
 # Welcome
 
