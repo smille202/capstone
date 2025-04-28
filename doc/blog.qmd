@@ -95,7 +95,6 @@ merged_data = pd.merge(merged_data, inflation_data, on='observation_date', how='
 
 merged_data['year'] = merged_data['observation_date'].dt.year
 merged_data = pd.merge(merged_data, natural_disasters, on='year', how='outer')
-
 ```
 
 # Trends Over Time
