@@ -19,51 +19,548 @@ jupyter: python3
 
 ![Source: Unsplash, Jakub Żerdzicki](image.jpg){width=100%}
 
-# Welcome
+# Introduction
+According to *[The National Oceanic and Atmospheric Administration](https://www.rainn.org/statistics/scope-problem)* (NOAA), natural disasters in the United States have increased in both frequency and severity over the past few decades. At the same time, homeowners' insurance premiums have steadily risen, leading to concerns by many about the factors that are seeming to be driving these premium increases.
+
+While inflation has often been blamed as the key factor to the rise in insurance premiums, it is crucial to consider the role that natural disasters could be having on these trends. Therefore, the purpose of this research is to examine how  natural disaster occurrences, inflation rates, and the change in homeowners' insurance premiums (specifically from 2000 to 2018) correlate with one another. This project aims to analyze the impact of natural disasters and inflation, as key risk factors, on the rising costs of home insurance premiums in the United States.
 
 
-**Welcome** to *my* ~~super~~ SUPER awesome `blog` yay
-$$x^2 = 1$$
+# Data Description and Preprocessing
+The datasets used in this project include information on natural disasters, homeowners' insurance premiums, commercial insurance premiums, and inflation rates in the United States. The Natural Disasters Dataset contains the details about the occurrences of disasters worldwide, including disaster type, location, and geolocation. To focus the analysis on just the United States, the dataset was filtered to include only U.S. entries.
 
-## Quarto is cool
+The Home Insurance Premiums Dataset tracks the Producer Price Index (PPI) for homeowners' insurance premiums, with the column PCU9241269241262 renamed to Home_Insurance_PPI for clarity. Similarly, the Commercial Insurance Premiums Dataset tracks the PPI for commercial multiple peril insurance, with PCU9241269241265 renamed to Commercial_Insurance_PPI. Both datasets include an observation_date column, which was standardized to a datetime format for consistency.
 
-This section was copy/pasted from various parts of the [Quarto website](https://quarto.org/docs/get-started/hello/vscode.html).
+The Inflation Data Dataset contains U.S. inflation rates, with the column FPCPITOTLZGUSA renamed to inflation_rate. This column was also standardized as a datetime column for consistency. Any rows that had missing or invalid observation dates in these datasets were removed to maintain data integrity.
 
-:::{.callout-note}
-Note that there are five types of callouts, including:
-`note`, `tip`, `warning`, `caution`, and `important`.
-:::
+After renaming columns and standardizing the observation_date, the datasets were merged step by step using outer joins on common columns such as observation_date. 
+A year column was created from the observation_date for easy analysis and comparison of the data. The resulting dataset, merged_data, now contains variables related to homeowners' insurance premiums, commercial insurance premiums, inflation rates, and natural disaster occurrences by year, which was used for the analysis.
 
-:::{.callout-tip}
-## Tip With Caption
+```{python, echo=FALSE}
+import pandas as pd
 
-This is an example of a callout with a caption.
-:::
+from scipy.stats import pearsonr
+import statsmodels.api as sm
+from statsmodels.tsa.stattools import grangercausalitytests
 
+from sklearn.linear_model import LinearRegression
 
-For your reference, here's an example of a Python code cell in Quarto, along with a figure that gets generated, along with a caption and a label so that it can be referred to automatically as "Figure 1" (or whatever) in the writeup.
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import plotly.express as px
 
-For a demonstration of a line plot on a polar axis, see @fig-polar.
+```
 
 ```{python}
-#| label: fig-polar
-#| fig-cap: "A line plot on a polar axis"
+#| warning: false
+#| echo: false
+#| output: false
 
-import numpy as np
-import matplotlib.pyplot as plt
+# read data
+natural_disasters = pd.read_csv('naturaldisasters.csv', on_bad_lines='skip')
+home_data = pd.read_csv('home_insurace_premiums.csv', on_bad_lines='skip')
+commercial_data = pd.read_csv('commercial _insurance_premiums.csv', on_bad_lines='skip')
+inflation_data = pd.read_csv('US_Inflation.csv', on_bad_lines='skip')
 
-r = np.arange(0, 2, 0.01)
-theta = 2 * np.pi * r
-fig, ax = plt.subplots(
-  subplot_kw = {'projection': 'polar'} 
-)
-ax.plot(theta, r)
-ax.set_rticks([0.5, 1, 1.5, 2])
-ax.grid(True)
+# rename and drop variables
+inflation_data.rename(columns={"FPCPITOTLZGUSA": "inflation_rate"}, inplace=True)
+
+home_data.rename(columns={"PCU9241269241262": "Home_Insurance_PPI"}, inplace=True)
+
+commercial_data.rename(columns={"PCU9241269241265": "Commercial_Insurance_PPI"}, inplace=True)
+
+natural_disasters = natural_disasters.rename(columns={"id": "disaster_id"})
+natural_disasters = natural_disasters[natural_disasters["country"] == "United States"]
+natural_disasters = natural_disasters[[
+    "disaster_id", "country", "iso3", "year", "geo_id", "geolocation",
+    "location", "disastertype", "latitude", "longitude", "adm1"
+]]
+
+# observation_date to standardized datetime format
+home_data["observation_date"] = pd.to_datetime(home_data["observation_date"], errors='coerce')
+commercial_data["observation_date"] = pd.to_datetime(commercial_data["observation_date"], errors='coerce')
+inflation_data["observation_date"] = pd.to_datetime(inflation_data["observation_date"], errors='coerce')
+
+# drop rows with missing observation dates
+home_data.dropna(subset=["observation_date"], inplace=True)
+commercial_data.dropna(subset=["observation_date"], inplace=True)
+inflation_data.dropna(subset=["observation_date"], inplace=True)
+
+home_data.dropna(subset=["observation_date"], inplace=True)
+commercial_data.dropna(subset=["observation_date"], inplace=True)
+inflation_data.dropna(subset=["observation_date"], inplace=True)
+
+# merge datasets
+merged_data = pd.merge(home_data, commercial_data, on='observation_date', how='outer')
+merged_data = pd.merge(merged_data, inflation_data, on='observation_date', how='outer')
+
+merged_data['year'] = merged_data['observation_date'].dt.year
+merged_data = pd.merge(merged_data, natural_disasters, on='year', how='outer')
+
+```
+
+# Trends Over Time
+
+## Insurance Rates
+```{python}
+home_insurance_by_year = merged_data.groupby('year')['Home_Insurance_PPI'].mean()
+commercial_insurance_by_year = merged_data.groupby('year')['Commercial_Insurance_PPI'].mean()
+
+# prep data for regression
+home_insurance_by_year = home_insurance_by_year.dropna()
+commercial_insurance_by_year = commercial_insurance_by_year.dropna()
+
+X_home = home_insurance_by_year.index.values.reshape(-1, 1)  # Independent variable (years)
+y_home = home_insurance_by_year.values  # Dependent variable (Home Insurance Premiums)
+
+X_commercial = commercial_insurance_by_year.index.values.reshape(-1, 1)  # Independent variable (years)
+y_commercial = commercial_insurance_by_year.values  # Dependent variable (Commercial Insurance Premiums)
+
+# fit linear regression models
+home_model = LinearRegression()
+home_model.fit(X_home, y_home)
+home_predicted = home_model.predict(X_home)
+
+commercial_model = LinearRegression()
+commercial_model.fit(X_commercial, y_commercial)
+commercial_predicted = commercial_model.predict(X_commercial)
+
+# plot with regression lines
+plt.figure(figsize=(10, 6))
+plt.plot(home_insurance_by_year.index, home_insurance_by_year.values, marker='o', label='Homeowners Insurance')
+plt.plot(commercial_insurance_by_year.index, commercial_insurance_by_year.values, marker='s', label='Commercial Insurance')
+plt.plot(home_insurance_by_year.index, home_predicted, linestyle='--', color='blue', label='Homeowners Regression')
+plt.plot(commercial_insurance_by_year.index, commercial_predicted, linestyle='--', color='red', label='Commercial Regression')
+
+plt.title('Homeowners vs Commercial Insurance Premiums with Regression')
+plt.xlabel('Year')
+plt.ylabel('Insurance Premiums (Producer Price Index June 1 1998=100)')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+print(f"Home Insurance Linear Regression Slope: {home_model.coef_[0]}")
+print(f"Commercial Insurance Linear Regression Slope: {commercial_model.coef_[0]}")
+```
+
+This visualization and linear regression analysis confirms that homeowners' insurance premiums have been increasing at a significant rate, with a steady annual increase of about 5.15. The rise in premiums confirms the need to investigate the potential factors driving these increases, which is why this project focuses on understanding the relationship between natural disasters, inflation, and insurance premiums. Similarly, commercial insurance premiums are also increasing, but at a slower rate with a slope of 1.43.
+
+## Inflation
+```{python}
+inflation_data_2000 = merged_data[(merged_data['year'] >= 2000) & (merged_data['inflation_rate'].notna())]
+
+X = inflation_data_2000[['year']]  # independent variable (year)
+y = inflation_data_2000['inflation_rate']  # dependent variable (inflation_rate)
+
+inflation_model = LinearRegression()
+inflation_model.fit(X, y)
+
+
+merged_data.loc[merged_data['year'] >= 2000, 'predicted_inflation_rate'] = inflation_model.predict(merged_data[merged_data['year'] >= 2000][['year']])
+
+# plot
+plt.figure(figsize=(10, 6))
+plt.plot(inflation_data_2000['year'], 
+         inflation_data_2000['inflation_rate'], 
+         marker='o', linestyle='-', color='b', label='Inflation Rate')
+plt.plot(merged_data[merged_data['year'] >= 2000]['year'], 
+         merged_data[merged_data['year'] >= 2000]['predicted_inflation_rate'], 
+         linestyle='--', color='r', label='Linear Regression')
+plt.title('Inflation Rate Over Time with Linear Regression (2000 and Later)')
+plt.xlabel('Year')
+plt.ylabel('Inflation Rate')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+print(f"Inflation Linear Regression Slope (2000 and Later): {inflation_model.coef_[0]}")
+
+```
+
+A linear regression model was used to analyze the inflation rates from 2000 . The model predicts inflation based on the year, and the results are plotted, showing both the actual and predicted inflation rates. The regression slope of -0.064 indicates a slight annual decrease in inflation rates from 2000 onward, suggesting a downward trend in inflation over this period. However, there are multiple dips and increases of the actual rates by year. There is a significant increase seen after 2020, which could have an impact on insurance premiums, but is not analyzed in this project due to the natural disaster data having only been updated until 2018.
+
+## Natural Disasters
+```{python}
+natural_disasters_by_year = merged_data.groupby('year')['disaster_id'].count()
+# years from 2000 to 2018
+natural_disasters_since2000 = natural_disasters_by_year[(natural_disasters_by_year.index >= 2000) & 
+                                                         (natural_disasters_by_year.index <= 2018)]
+
+# prep data for regression
+natural_disasters_since2000 = natural_disasters_since2000.dropna()
+
+X_disasters = natural_disasters_since2000.index.values.reshape(-1, 1)  # independent variable (years)
+y_disasters = natural_disasters_since2000.values  # dependent variable (Number of Disasters)
+
+# linear regression model
+disaster_model = LinearRegression()
+disaster_model.fit(X_disasters, y_disasters)
+disaster_predicted = disaster_model.predict(X_disasters)
+
+# with regression line
+plt.figure(figsize=(10, 6))
+plt.plot(natural_disasters_since2000.index, natural_disasters_since2000.values, marker='o', label='Natural Disasters')
+plt.plot(natural_disasters_since2000.index, disaster_predicted, linestyle='--', color='red', label='Regression Line')
+
+plt.title('Natural Disasters Over Time with Regression (2000-2018)')
+plt.xlabel('Year')
+plt.ylabel('Number of Disasters')
+plt.xticks(range(2000, 2019))
+plt.legend()
+plt.grid(True)
+plt.show()
+
+print(f"Natural Disasters Linear Regression Slope: {disaster_model.coef_[0]}")
+```
+
+This analysis uses a linear regression model to explore the number of natural disasters in the United States between 2000 and 2018. The regression line reveals a slight downward trend, with a slope of -14.86, suggesting that the number of disasters decreased by an average of about 15 events per year during this period. However, there are notable fluctuations in the actual frequencies versus the regression line, with a significant peak in 2003 followed by a sharp decline in 2005. 
+
+# Linearity Analysis
+
+## Inflation vs Home Insurance Premiums
+Null Hypothesis: There is no significant linear relationship between the yearly percentage change in home insurance premiums and inflation rates. (Correlation coefficient = 0)
+
+Alternative Hypothesis: There is a significant linear relationship between the yearly percentage change in home insurance premiums and inflation rates. (Correlation coefficient != 0)
+```{python}
+#| warning: false
+#| echo: false
+
+#inflation data
+if 'year' not in inflation_data.columns:
+    inflation_data['year'] = pd.to_datetime(inflation_data['observation_date']).dt.year
+
+inflation_data['observation_date'] = pd.to_datetime(inflation_data['observation_date'])
+inflation_yearly = inflation_data.groupby('year')['inflation_rate'].mean().reset_index()
+
+# home insurance data
+home_data['observation_date'] = pd.to_datetime(home_data['observation_date'])
+home_data['year'] = home_data['observation_date'].dt.year
+home_yearly = home_data.groupby('year')['Home_Insurance_PPI'].mean().reset_index()
+home_yearly['home_insurance_pct_change'] = home_yearly['Home_Insurance_PPI'].pct_change() * 100
+home_yearly['home_insurance_pct_change'] = home_yearly['home_insurance_pct_change'].fillna(0)
+
+# merge datasets by year
+paired_data = pd.merge(home_yearly[['year', 'home_insurance_pct_change']], 
+                       inflation_yearly[['year', 'inflation_rate']], 
+                       on='year', how='inner')
+
+paired_data.dropna(inplace=True)
+paired_data = paired_data[(paired_data['year'] >= 2000) & (paired_data['year'] <= 2018)]  # adjust years
+
+
+# Pearson correlation test
+corr, p_value = pearsonr(paired_data['home_insurance_pct_change'], paired_data['inflation_rate'])
+print(f"Pearson correlation coefficient: {corr}")
+print(f"P-value: {p_value}")
+
+# results
+alpha = 0.05
+if p_value < alpha:
+    print("Reject the null hypothesis. There is a significant linear relationship between the changes in home insurance premiums and inflation rates.")
+else:
+    print("Fail to reject the null hypothesis. There is no significant linear relationship between the changes in home insurance premiums and inflation rates.")
+
+
+# Scatter plot(same year)
+plt.figure(figsize=(8, 6))
+plt.scatter(paired_data['inflation_rate'], paired_data['home_insurance_pct_change'], color='b')
+plt.title('Inflation Rate vs. Home Insurance % Change')
+plt.xlabel('Inflation Rate (%)')
+plt.ylabel('Home Insurance % Change')
+plt.grid(True)
+
+plt.annotate(f'Pearson r: {corr:.4f}', 
+             xy=(0.05, 0.95), xycoords='axes fraction', 
+             fontsize=12, backgroundcolor='white')
+```
+
+The Pearson correlation test was used to evaluate the linear relationship between the yearly percentage change in homeowners' insurance premiums and inflation rates from 2000 to 2018.
+
+The Pearson correlation coefficient was 0.0628, and the p-value was 0.7984. Since the p-value exceeds the significance level of 0.05, we fail to reject the null hypothesis. This indicates that there is no significant linear relationship between the changes in homeowners' insurance premiums and inflation rates over the period from 2000 to 2018.The scatter plot above visually confirms the weak correlation between the inflation rate and the percentage change in home insurance premiums.
+
+Next, the same test was conducted, but with a shift in the data to compare the inflation rate in a given year to the percentage change in home insurance premiums for the following year. This allows for analysis to determine if home insurance premiums are linearly related to the inflation rate from the prior year, and to assess whether there is a delay in the impact of inflation on insurance rates.
+
+```{python}
+
+# shift home insurance data by one year
+home_yearly['home_insurance_pct_change_next_year'] = home_yearly['home_insurance_pct_change'].shift(-1)
+
+# merge shifted with inflation data
+paired_data_shifted = pd.merge(home_yearly[['year', 'home_insurance_pct_change_next_year']], 
+                               inflation_yearly[['year', 'inflation_rate']], 
+                               on='year', how='inner')
+
+paired_data_shifted.dropna(inplace=True)
+paired_data_shifted = paired_data_shifted[(paired_data_shifted['year'] >= 2000) & (paired_data_shifted['year'] <= 2018)]  # adjust years
+
+
+# Pearson correlation test
+corr_shifted, p_value_shifted = pearsonr(paired_data_shifted['home_insurance_pct_change_next_year'], paired_data_shifted['inflation_rate'])
+print(f"Pearson correlation coefficient (shifted): {corr_shifted}")
+print(f"P-value (shifted): {p_value_shifted}")
+
+# Results
+alpha = 0.05
+if p_value_shifted < alpha:
+    print("Reject the null hypothesis. There is a significant linear relationship between the previous year's inflation rate and the next year's changes in home insurance premiums.")
+else:
+    print("Fail to reject the null hypothesis. There is no significant linear relationship between the previous year's inflation rate and the next year's changes in home insurance premiums.")
+
+# scatterplot for inflation rate and next year's insurance rate change
+plt.figure(figsize=(8, 6))
+plt.scatter(paired_data_shifted['inflation_rate'], paired_data_shifted['home_insurance_pct_change_next_year'], color='b')
+plt.title('Inflation Rate vs. Next Year Home Insurance % Change')
+plt.xlabel('Inflation Rate (%)')
+plt.ylabel('Home Insurance % Change (Next Year)')
+plt.grid(True)
+
+plt.annotate(f'Pearson r: {corr:.4f}', 
+             xy=(0.05, 0.95), xycoords='axes fraction', 
+             fontsize=12, backgroundcolor='white')
+
+plt.show()
+
+
+```
+
+The Pearson correlation test for whether the inflation rate in one year affects the change in home insurance premiums for the next year showed that there is still no significant relationship between them. The correlation was very close to zero, and the p-value was very high (0.967), meaning the result is not statistically significant, suggesting that changes in home insurance premiums for the next year are not strongly influenced by the inflation rate from the previous year.
+
+## Natural Disasters vs Home Insurance Premiums
+
+Null Hypothesis: There is no significant linear relationship between disaster frequency and home insurance percentage change.
+
+Alternative Hypothesis: There is a significant linear relationship between disaster frequency and home insurance percentage change.
+
+```{python}
+#| warning: false
+#| echo: false
+
+# total disasters per year
+disaster_yearly = merged_data.groupby('year')['disaster_id'].count().reset_index()
+disaster_yearly.rename(columns={'disaster_id': 'disaster_count'}, inplace=True)
+
+# merge data
+full_data = pd.merge(home_yearly[['year', 'home_insurance_pct_change']], 
+                     disaster_yearly[['year', 'disaster_count']], on='year', how='inner')
+full_data = full_data[(full_data['year'] >= 2000) & (full_data['year'] <= 2018)]  # adjust years
+
+full_data.dropna(inplace=True)
+
+# Pearson correlation test
+corr, p_value = pearsonr(full_data['home_insurance_pct_change'], full_data['disaster_count'])
+print(f"Pearson correlation coefficient: {corr}")
+print(f"P-value: {p_value}")
+
+# results
+alpha = 0.05
+if p_value < alpha:
+    print("Reject the null hypothesis. There is a significant linear relationship between the disaster count and changes in home insurance premiums.")
+else:
+    print("Fail to reject the null hypothesis. There is no significant linear relationship between the disaster count and changes in home insurance premiums.")
+
+
+fig, ax1 = plt.subplots(figsize=(10, 6))
+# disaster count (left)
+ax1.bar(full_data['year'], full_data['disaster_count'], alpha=0.6, color='g', label='Disaster Count')
+ax1.set_xlabel('Year')
+ax1.set_ylabel('Disaster Count', color='g')
+ax1.tick_params(axis='y', labelcolor='g')
+ax1.set_xticks(full_data['year'])
+
+# insurance percentage change (right)
+ax2 = ax1.twinx()
+ax2.plot(full_data['year'], full_data['home_insurance_pct_change'], marker='o', linestyle='-', color='b', label='Home Insurance % Change')
+ax2.set_ylabel('Home Insurance % Change', color='b')
+ax2.tick_params(axis='y', labelcolor='b')
+
+plt.title('Yearly Home Insurance Rate Changes & Disaster Frequency')
+fig.tight_layout()
+plt.show()
+```
+]
+
+Based on the hypothesis test, there is a significant linear relationship between the frequency of natural disasters and the changes in home insurance premiums. The results showed that the correlation coefficient between disaster count and the percentage change in home insurance premiums is 0.49, indicating a positive relationship. The p-value of 0.034 is less than the significance level of 0.05, leading to the rejection of the null hypothesis. This means there is a statistically significant linear relationship between disaster frequency and home insurance premium changes.
+
+The visualization above provides a clear comparison between the number of natural disasters each year and the changes in home insurance premiums, helping to highlight how these two factors are linearly related be related over time.
+
+# Multivariate Linearity Analysis
+```{python}
+#adjust year 2000-2018
+merged_data_filtered = merged_data[(merged_data['year'] >= 2000) & (merged_data['year'] <= 2018)]
+disaster_yearly = merged_data.groupby('year')['disaster_id'].count().reset_index()
+disaster_yearly.rename(columns={'disaster_id': 'disaster_count'}, inplace=True)
+
+full_data = pd.merge(paired_data, disaster_yearly, on='year', how='inner')
+full_data['inflation_pct_change'] = full_data['inflation_rate'].pct_change() * 100
+full_data_cleaned = full_data.dropna(subset=['inflation_pct_change', 'disaster_count', 'home_insurance_pct_change'])
+
+# independent variables (inflation percentage change and disaster count)
+X = full_data_cleaned[['inflation_pct_change', 'disaster_count']]
+X = sm.add_constant(X)
+
+# dependent variable (home insurance percentage change)
+y = full_data_cleaned['home_insurance_pct_change']
+
+# multiple linear regression model
+model = sm.OLS(y, X).fit()
+
+print(f"R-squared: {model.rsquared:.4f}")
+print(f"Adjusted R-squared: {model.rsquared_adj:.4f}")
+print(f"Coefficients:\n{model.params}")
+print(f"P-values:\n{model.pvalues}")
+
+# coef from regression model
+beta_1, beta_2 = model.params['inflation_pct_change'], model.params['disaster_count']
+
+# calculate contributions
+full_data['Inflation_Impact'] = beta_1 * full_data['inflation_pct_change']
+full_data['Disaster_Impact'] = beta_2 * full_data['disaster_count']
+
+# normalize contributions to sum up to 100% of the insurance rate change
+full_data['Total_Impact'] = full_data['Inflation_Impact'] + full_data['Disaster_Impact']
+full_data['Inflation_Impact'] = (full_data['Inflation_Impact'] / full_data['Total_Impact']) * full_data['home_insurance_pct_change']
+full_data['Disaster_Impact'] = (full_data['Disaster_Impact'] / full_data['Total_Impact']) * full_data['home_insurance_pct_change']
+
+full_data = full_data[full_data['year'] <= 2018]
+
+# stacked area chart with custom colors
+plt.figure(figsize=(10,6))
+plt.stackplot(full_data['year'], full_data['Inflation_Impact'], full_data['Disaster_Impact'], 
+              labels=['Inflation Impact', 'Disaster Impact'], alpha=0.7, 
+              colors=['red', 'lightblue'])
+plt.xticks(full_data['year'], rotation=45) 
+plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(1))  #show every year
+
+plt.xlabel('Year')
+plt.ylabel('Contribution to Insurance Rate Increase (%)')
+plt.title('Impact of Inflation vs. Disasters on Home Insurance Rate Increases Over Time')
+plt.legend(loc='upper left')
+plt.grid(True, linestyle='--', alpha=0.5)
+
 plt.show()
 ```
 
-Here's an example of citing a source [see @phil99, pp. 33-35]. Be sure the source information is entered in "BibTeX" form in the `references.bib` file.
+The multiple linear regression analysis examined the actual impact of inflation and natural disaster frequency on changes in home insurance premiums. The results revealed that inflation has a minimal and statistically insignificant effect on home insurance premiums (with a p-value of 0.45). On the contrary, the frequency of natural disasters showed a significant relationship with premium changes, with a p-value of 0.03. This suggests that natural disasters are a more influential factor in driving up home insurance premiums compared to inflation. However, The R-squared value of 0.2812 indicates that approximately 28.12% of the variability in home insurance premium changes is explained by inflation and natural disaster occurances. This suggests that while the model accounts for some of the variation in insurance premiums, there is still a significant portion of the variation that remains unexplained by these factors. This means other potential factors, not included in this analysis, are likely also influencing the changes in home insurance premiums in real life.
+
+The stacked area chart above visualizes these findings, showing how the contributions of inflation and disasters over time on insurance rates. Inflation's impact remains relatively weak, with only small changes in premiums. On the other hand, the influence of disaster frequency is a lot higher,  emphasizing the role of disasters in driving premium increases.
 
 
-The bibliography will automatically be generated, listing all sources in the `.bib` file.
+# Granger Causality Analysis
+```{python}
+#| warning: false
+#| echo: false
+
+full_data = full_data[(full_data['year'] >= 2000) & (full_data['year'] <= 2018)]
+
+# Granger Causality Test
+full_data = full_data[['home_insurance_pct_change', 'disaster_count']]
+
+print("Granger Causality Test: Disaster Count -> Home Insurance % Change")
+gc_results = grangercausalitytests(full_data, maxlag=5, verbose=True)
+
+for lag in range(1, 3):
+    print(f"Lag {lag} results:")
+
+```
+
+The Granger Causality Test results indicate that despite the earlier Pearson Correlation tests on linearity and multiple linear regression suggesting a relationship between the frequency of natural disasters and changes in home insurance premiums, there is no significant causal link between the two variables. The p-values for all lags (from 1 to 5) are well above the 0.05 threshold, suggesting that the number of natural disasters in any given year does not predict the changes in home insurance premiums in the following years. This means that while there may be a linear relationship between these variables, the frequency of disasters does not directly cause the increases in insurance rates for the next year, since the causality test fails to reject the null hypothesis.
+
+# Analyzing the Trends and Hotspots of Natural Disasters
+```{python}
+# 2000-2023
+filtered_data = merged_data[(merged_data['year'] >= 2000) & (merged_data['year'] <= 2023)]
+
+disasters_by_type = filtered_data.groupby('disastertype').size()
+
+plt.figure(figsize=(10, 7))
+colors = plt.cm.Paired.colors
+
+plt.pie(
+    disasters_by_type, 
+    startangle=90, 
+    colors=colors, 
+    pctdistance=0.85
+)
+
+
+plt.title("Distribution of Natural Disasters by Type (2000 - 2023)")
+
+# key
+plt.legend(disasters_by_type.index, title='Disaster Types', loc='upper left', bbox_to_anchor=(1, 1))
+
+plt.show()
+```
+
+```{python}
+# natural disasters by state
+disasters_by_state = natural_disasters['adm1'].value_counts().reset_index()
+disasters_by_state.columns = ['state', 'num_disasters']
+
+# names to state codes
+us_states = pd.read_csv("https://raw.githubusercontent.com/jasonong/List-of-US-States/master/states.csv")
+disasters_by_state = disasters_by_state.merge(us_states, left_on='state', right_on='State', how='left')
+
+# map
+fig = px.choropleth(disasters_by_state,
+                    locations="Abbreviation",
+                    locationmode="USA-states",
+                    color="num_disasters",
+                    hover_name="state",
+                    hover_data=["num_disasters"],
+                    color_continuous_scale="dense",
+                    labels={'num_disasters': 'Number of Natural Disasters'},
+                    scope="usa"
+                   )
+
+fig.update_layout(
+    title_text="Natural Disasters by State in the USA",
+    title_x=0.5,
+    width=750, height=600, 
+    coloraxis_colorbar=dict(len=0.6),
+    margin=dict(l=0, r=0, t=50, b=0)
+)
+
+fig.update_traces(marker_line_color='white', marker_line_width=1.0)
+
+fig.show()
+```
+
+```{python}
+disasters_geo = natural_disasters.dropna(subset=['longitude', 'latitude'])
+
+# Scatter Geo Plot
+fig = px.scatter_geo(disasters_geo,
+                     lon='longitude',
+                     lat='latitude',
+                     scope='usa',
+                     color='disastertype',
+                     hover_name='disastertype',
+                     hover_data={'longitude': True, 'latitude': True, 'year': True},
+                     title='Natural Disaster Hotspots in the USA',
+                     opacity=0.6,
+                     color_discrete_sequence=px.colors.qualitative.Bold)
+
+fig.update_layout(
+    geo=dict(
+        scope='usa',
+        landcolor='lightgray',
+        showcountries=False,
+        showland=True,
+        showlakes=True,
+        lakecolor='lightblue'
+    ),
+    margin=dict(l=0, r=0, t=50, b=0),
+    width=800,
+    height=600
+)
+
+fig.show()
+```
+
+# Conclusion
+
+
+
+
+
+
+# References
