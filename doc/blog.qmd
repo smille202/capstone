@@ -35,6 +35,7 @@ The Inflation Data Dataset contains U.S. inflation rates, with the column FPCPIT
 After renaming columns and standardizing the observation_date, the datasets were merged step by step using outer joins on common columns such as observation_date. 
 A year column was created from the observation_date for easy analysis and comparison of the data. The resulting dataset, merged_data, now contains variables related to homeowners' insurance premiums, commercial insurance premiums, inflation rates, and natural disaster occurrences by year, which was used for the analysis.
 
+
 ```{python, echo=FALSE}
 import pandas as pd
 
@@ -48,12 +49,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import plotly.express as px
 
-```
-
-```{python}
-#| warning: false
-#| echo: false
-#| output: false
 
 # read data
 natural_disasters = pd.read_csv('naturaldisasters.csv', on_bad_lines='skip')
@@ -95,11 +90,28 @@ merged_data = pd.merge(merged_data, inflation_data, on='observation_date', how='
 
 merged_data['year'] = merged_data['observation_date'].dt.year
 merged_data = pd.merge(merged_data, natural_disasters, on='year', how='outer')
+
 ```
 
-# Trends Over Time
+# Analysis
 
-## Insurance Rates
+The analysis of how insurance rates could be affected by inflation and natural disaster occurances is divided into several distinct parts. Below are the key questions and areas this study aims to explore in each section:
+
+- **Trends Over Time** (@sec-trends)**:**  How have homeowners insurance premiums, inflation rates, and natural disaster occurrences changed over time?
+
+- **Linearity Analysis** (@sec-linearity): Is there a linear relationship between inflation and insurance premiums? Similarly, is the frequency of natural disasters linear to the change in premium rates?
+
+- **Multivariate Linearity Analysis** (@sec-multiple): When considering both inflation and natural disaster occurrences together, how well can they explain the variation in insurance premium rates?
+
+- **Granger Causality Analysis** (@sec-granger): Do inflation or natural disasters Granger-cause changes in insurance premiums? In other words, can past values of one variable statistically predict future changes in insurance rates?
+
+- **Analyzing the Trends and Hotspots of Natural Disasters** (@sec-disasters): What types of natural disasters are most prevalent across the U.S. from 2000–2023? Which states are most affected, and where are the geographic hotspots?
+
+
+## Trends Over Time {#sec-trends}
+This section investigates how insurance premiums, inflation rates, and natural disaster occurrences have changed over time individually. Simple linear regression models are applied to evaluate the presence of trends. These foundational analyses and visualizations provide a basis for exploring potential causal relationships and interactions among the variables in later sections.
+
+### Insurance Rates
 ```{python}
 home_insurance_by_year = merged_data.groupby('year')['Home_Insurance_PPI'].mean()
 commercial_insurance_by_year = merged_data.groupby('year')['Commercial_Insurance_PPI'].mean()
@@ -143,7 +155,7 @@ print(f"Commercial Insurance Linear Regression Slope: {commercial_model.coef_[0]
 
 This visualization and linear regression analysis confirms that homeowners' insurance premiums have been increasing at a significant rate, with a steady annual increase of about 5.15. The rise in premiums confirms the need to investigate the potential factors driving these increases, which is why this project focuses on understanding the relationship between natural disasters, inflation, and insurance premiums. Similarly, commercial insurance premiums are also increasing, but at a slower rate with a slope of 1.43.
 
-## Inflation
+### Inflation
 ```{python}
 inflation_data_2000 = merged_data[(merged_data['year'] >= 2000) & (merged_data['inflation_rate'].notna())]
 
@@ -177,7 +189,7 @@ print(f"Inflation Linear Regression Slope (2000 and Later): {inflation_model.coe
 
 A linear regression model was used to analyze the inflation rates from 2000 . The model predicts inflation based on the year, and the results are plotted, showing both the actual and predicted inflation rates. The regression slope of -0.064 indicates a slight annual decrease in inflation rates from 2000 onward, suggesting a downward trend in inflation over this period. However, there are multiple dips and increases of the actual rates by year. There is a significant increase seen after 2020, which could have an impact on insurance premiums, but is not analyzed in this project due to the natural disaster data having only been updated until 2018.
 
-## Natural Disasters
+### Natural Disasters
 ```{python}
 natural_disasters_by_year = merged_data.groupby('year')['disaster_id'].count()
 # years from 2000 to 2018
@@ -213,12 +225,14 @@ print(f"Natural Disasters Linear Regression Slope: {disaster_model.coef_[0]}")
 
 This analysis uses a linear regression model to explore the number of natural disasters in the United States between 2000 and 2018. The regression line reveals a slight downward trend, with a slope of -14.86, suggesting that the number of disasters decreased by an average of about 15 events per year during this period. However, there are notable fluctuations in the actual frequencies versus the regression line, with a significant peak in 2003 followed by a sharp decline in 2005. 
 
-# Linearity Analysis
+## Linearity Analysis {#sec-linearity}
+This section analyzes whether changes in home insurance premiums have a linear relationship with inflation rates and the frequency of natural disasters. Pearson correlation tests are used to evaluate these relationships from 2000 to 2018.
 
-## Inflation vs Home Insurance Premiums
-Null Hypothesis: There is no significant linear relationship between the yearly percentage change in home insurance premiums and inflation rates. (Correlation coefficient = 0)
 
-Alternative Hypothesis: There is a significant linear relationship between the yearly percentage change in home insurance premiums and inflation rates. (Correlation coefficient != 0)
+### Inflation vs Home Insurance Premiums
+-**Null Hypothesis:** There is no significant linear relationship between the yearly percentage change in home insurance premiums and inflation rates. (Correlation coefficient = 0)
+
+-**Alternative Hypothesis:** There is a significant linear relationship between the yearly percentage change in home insurance premiums and inflation rates. (Correlation coefficient != 0)
 ```{python}
 #| warning: false
 #| echo: false
@@ -323,11 +337,11 @@ plt.show()
 
 The Pearson correlation test for whether the inflation rate in one year affects the change in home insurance premiums for the next year showed that there is still no significant relationship between them. The correlation was very close to zero, and the p-value was very high (0.967), meaning the result is not statistically significant, suggesting that changes in home insurance premiums for the next year are not strongly influenced by the inflation rate from the previous year.
 
-## Natural Disasters vs Home Insurance Premiums
+### Natural Disasters vs Home Insurance Premiums
 
-Null Hypothesis: There is no significant linear relationship between disaster frequency and home insurance percentage change.
+-**Null Hypothesis:** There is no significant linear relationship between disaster frequency and home insurance percentage change.
 
-Alternative Hypothesis: There is a significant linear relationship between disaster frequency and home insurance percentage change.
+-**Alternative Hypothesis:** There is a significant linear relationship between disaster frequency and home insurance percentage change.
 
 ```{python}
 #| warning: false
@@ -375,13 +389,14 @@ plt.title('Yearly Home Insurance Rate Changes & Disaster Frequency')
 fig.tight_layout()
 plt.show()
 ```
-]
 
 Based on the hypothesis test, there is a significant linear relationship between the frequency of natural disasters and the changes in home insurance premiums. The results showed that the correlation coefficient between disaster count and the percentage change in home insurance premiums is 0.49, indicating a positive relationship. The p-value of 0.034 is less than the significance level of 0.05, leading to the rejection of the null hypothesis. This means there is a statistically significant linear relationship between disaster frequency and home insurance premium changes.
 
 The visualization above provides a clear comparison between the number of natural disasters each year and the changes in home insurance premiums, helping to highlight how these two factors are linearly related be related over time.
 
-# Multivariate Linearity Analysis
+## Multivariate Linearity Analysis {#sec-multiple}
+This section uses multiple linear regression to evaluate the combined influence of inflation and natural disaster frequency on changes in home insurance premiums from 2000 to 2018. By quantifying and visualizing the relative contributions of each factor, the analysis aims to determine which variable more strongly correlates with rising insurance costs.
+
 ```{python}
 #adjust year 2000-2018
 merged_data_filtered = merged_data[(merged_data['year'] >= 2000) & (merged_data['year'] <= 2018)]
@@ -443,7 +458,9 @@ The multiple linear regression analysis examined the actual impact of inflation 
 The stacked area chart above visualizes these findings, showing how the contributions of inflation and disasters over time on insurance rates. Inflation's impact remains relatively weak, with only small changes in premiums. On the other hand, the influence of disaster frequency is a lot higher,  emphasizing the role of disasters in driving premium increases.
 
 
-# Granger Causality Analysis
+## Granger Causality Analysis {#sec-granger}
+The Granger Causality Test checks if past natural disasters can predict changes in home insurance premiums in the following years.
+
 ```{python}
 #| warning: false
 #| echo: false
@@ -463,7 +480,9 @@ for lag in range(1, 3):
 
 The Granger Causality Test results indicate that despite the earlier Pearson Correlation tests on linearity and multiple linear regression suggesting a relationship between the frequency of natural disasters and changes in home insurance premiums, there is no significant causal link between the two variables. The p-values for all lags (from 1 to 5) are well above the 0.05 threshold, suggesting that the number of natural disasters in any given year does not predict the changes in home insurance premiums in the following years. This means that while there may be a linear relationship between these variables, the frequency of disasters does not directly cause the increases in insurance rates for the next year, since the causality test fails to reject the null hypothesis.
 
-# Analyzing the Trends and Hotspots of Natural Disasters
+## Analyzing the Trends and Hotspots of Natural Disasters {#sec-disasters}
+This section explores the trends and geographic distribution of natural disasters in the U.S. from 2000 to 2023. The analysis begins with an overview of the types of natural disasters and their distribution across the years. It then moves to a state-level analysis, identifying regions most affected by these events, followed by a geographical visualization highlighting disaster hotspots across the country. These visualizations provide insight into the frequency and impact of natural disasters in different regions, shedding light on areas most vulnerable to such events.
+
 ```{python}
 # 2000-2023
 filtered_data = merged_data[(merged_data['year'] >= 2000) & (merged_data['year'] <= 2023)]
@@ -488,6 +507,8 @@ plt.legend(disasters_by_type.index, title='Disaster Types', loc='upper left', bb
 
 plt.show()
 ```
+
+This pie chart illustrates the distribution of different types of natural disasters in the U.S. from 2000 to 2023. It shows that storms are the most common natural disaster in the country.
 
 ```{python}
 # natural disasters by state
@@ -523,6 +544,8 @@ fig.update_traces(marker_line_color='white', marker_line_width=1.0)
 fig.show()
 ```
 
+This choropleth map displays the number of natural disasters across different U.S. states from 2000 to 2023, where Texas is shown to be the state most vulnerable to occurances. 
+
 ```{python}
 disasters_geo = natural_disasters.dropna(subset=['longitude', 'latitude'])
 
@@ -555,11 +578,13 @@ fig.update_layout(
 fig.show()
 ```
 
+This scatter geo plot highlights the geographic distribution of natural disasters across the United States. Each point represents a disaster, color-coded by type, with the hover feature to provide details about the disaster's type, location, and year it occured.
+
 # Conclusion
 
+In conclusion, the analysis of natural disasters, inflation rates, and home insurance premiums provides valuable insights into the factors influencing insurance cost changes over time. The statistical tests and regression models revealed that while inflation has a limited impact, natural disasters significantly affect insurance premium increases. However, the Granger causality test suggested no direct causal relationship between natural disasters and premium adjustments, despite having a linear relationshp, suggesting that other underlying factors may also play a role.
 
-
-
+The visualizations of natural disaster occurances in the United States highlighted key trends, including the distribution of disasters by type, the state-by-state impact, and geographic hotspots of disaster occurrences. These findings offer a deeper understanding of how natural disasters vary across regions and how they could have a potential influence on insurance rates based on this study.
 
 
 # References
