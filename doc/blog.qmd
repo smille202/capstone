@@ -21,7 +21,7 @@ jupyter: python3
 ![Source: Unsplash, Jakub Żerdzicki](image.jpg){width=100%}
 
 # Introduction
-According to *[The National Oceanic and Atmospheric Administration](https://www.rainn.org/statistics/scope-problem)* (NOAA), natural disasters in the United States have increased in both frequency and severity over the past few decades. At the same time, homeowners' insurance premiums have steadily risen, leading to concerns by many about the factors that seems to be driving these premium increases. 
+According to *[The National Oceanic and Atmospheric Administration](https://www.ncei.noaa.gov/access/billions/)* (NOAA), natural disasters in the United States have increased in both frequency and severity over the past few decades. At the same time, homeowners' insurance premiums have steadily risen, leading to concerns by many about the factors that seems to be driving these premium increases. 
 
 While inflation has often been blamed as the key factor to the rise in insurance premiums, it is critical to consider the role that natural disasters could be having on these trends *[(Cavallo 2023)](https://www.candsins.com/blog/insurance-inflation/)* . Therefore, the purpose of this research is to examine how  natural disaster occurrences, inflation rates, and the change in homeowners' insurance premiums (specifically from 2000 to 2018) correlate with one another. This project aims to analyze the impact of natural disasters and inflation, as key risk factors, on the rising costs of home insurance premiums in the United States.
 
@@ -140,6 +140,7 @@ plt.plot(commercial_insurance_by_year.index, commercial_insurance_by_year.values
 plt.plot(home_insurance_by_year.index, home_predicted, linestyle='--', color='blue', label='Homeowners Regression')
 plt.plot(commercial_insurance_by_year.index, commercial_predicted, linestyle='--', color='red', label='Commercial Regression')
 
+plt.title('Homeowners vs Commercial Insurance Premiums with Regression')
 plt.xlabel('Year')
 plt.ylabel('Insurance Premiums (Producer Price Index June 1 1998=100)')
 plt.legend()
@@ -175,6 +176,7 @@ plt.plot(inflation_data_2000['year'],
 plt.plot(merged_data[merged_data['year'] >= 2000]['year'], 
          merged_data[merged_data['year'] >= 2000]['predicted_inflation_rate'], 
          linestyle='--', color='r', label='Linear Regression')
+plt.title('Inflation Rate Over Time with Linear Regression (2000 and Later)')
 plt.xlabel('Year')
 plt.ylabel('Inflation Rate')
 plt.grid(True)
@@ -211,7 +213,7 @@ disaster_predicted = disaster_model.predict(X_disasters)
 plt.figure(figsize=(10, 6))
 plt.plot(natural_disasters_since2000.index, natural_disasters_since2000.values, marker='o', label='Natural Disasters')
 plt.plot(natural_disasters_since2000.index, disaster_predicted, linestyle='--', color='red', label='Regression Line')
-
+plt.title('Natural Disasters Over Time with Regression (2000-2018)')
 plt.xlabel('Year')
 plt.ylabel('Number of Disasters')
 plt.xticks(range(2000, 2019))
@@ -277,6 +279,7 @@ else:
 # Scatter plot(same year)
 plt.figure(figsize=(8, 6))
 plt.scatter(paired_data['inflation_rate'], paired_data['home_insurance_pct_change'], color='b')
+plt.title('Inflation Rate vs. Home Insurance % Change)')
 plt.xlabel('Inflation Rate (%)')
 plt.ylabel('Home Insurance % Change')
 plt.grid(True)
@@ -322,6 +325,7 @@ else:
 # scatterplot for inflation rate and next year's insurance rate change
 plt.figure(figsize=(8, 6))
 plt.scatter(paired_data_shifted['inflation_rate'], paired_data_shifted['home_insurance_pct_change_next_year'], color='b')
+plt.title('Inflation Rate vs. Next Year Home Insurance % Change')
 plt.xlabel('Inflation Rate (%)')
 plt.ylabel('Home Insurance % Change (Next Year)')
 plt.grid(True)
@@ -386,7 +390,7 @@ ax2 = ax1.twinx()
 ax2.plot(full_data['year'], full_data['home_insurance_pct_change'], marker='o', linestyle='-', color='b', label='Home Insurance % Change')
 ax2.set_ylabel('Home Insurance % Change', color='b')
 ax2.tick_params(axis='y', labelcolor='b')
-
+plt.title('Yearly Home Insurance Rate Changes & Disaster Frequency')
 fig.tight_layout()
 plt.show()
 ```
@@ -446,7 +450,7 @@ plt.stackplot(full_data['year'], full_data['Inflation_Impact'], full_data['Disas
               colors=['red', 'lightblue'])
 plt.xticks(full_data['year'], rotation=45) 
 plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(1))  #show every year
-
+plt.title('Impact of Inflation vs. Disasters on Home Insurance Rate Increases Over Time')
 plt.xlabel('Year')
 plt.ylabel('Contribution to Insurance Rate Increase (%)')
 plt.legend(loc='upper left')
