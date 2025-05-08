@@ -21,7 +21,7 @@ jupyter: python3
 ![Source: Unsplash, Jakub Żerdzicki](image.jpg){width=100%}
 
 # Introduction
-According to *[The National Oceanic and Atmospheric Administration](https://www.ncei.noaa.gov/access/billions/)* (NOAA), natural disasters in the United States have increased in both frequency and severity over the past few decades. At the same time, homeowners' insurance premiums have steadily risen, leading to concerns by many about the factors that seems to be driving these premium increases. 
+ Natural disasters in the United States have increased in both frequency and severity over the past few decades *[NOAA](https://www.ncei.noaagovaccess/billions/)*. At the same time, homeowners' insurance premiums have steadily risen, leading to concerns by many about the factors that seems to be driving these premium increases. 
 
 While inflation has often been blamed as the key factor to the rise in insurance premiums, it is critical to consider the role that natural disasters could be having on these trends *[(Cavallo 2023)](https://www.candsins.com/blog/insurance-inflation/)* . Therefore, the purpose of this research is to examine how  natural disaster occurrences, inflation rates, and the change in homeowners' insurance premiums (specifically from 2000 to 2018) correlate with one another. This project aims to analyze the impact of natural disasters and inflation, as key risk factors, on the rising costs of home insurance premiums in the United States.
 
